@@ -1,6 +1,9 @@
 from flask import Flask, render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
+from asgiref.wsgi import WsgiToAsgi
 import pandas as pd
+import os
+
 
 app = Flask(__name__)
 
@@ -104,6 +107,10 @@ def atualizar(id):
         livro.editora = request.form["editora"]
         db.session.commit()
     return redirect(url_for("inicio"))
+
+
+
+asgi_app = WsgiToAsgi(app)
 
 if __name__ == "__main__":
     app.run(debug=True)
