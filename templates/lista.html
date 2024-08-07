@@ -40,6 +40,7 @@
             <th>Ano</th>
             <th>Editora</th>
             <th>Ativo</th>
+            <th>Ações</th>
           </tr>
         </thead>
         <tbody>
@@ -51,6 +52,7 @@
             <td>{{ livro.ano }}</td>
             <td>{{ livro.editora }}</td>
             <td>{{ livro.ativo }}</td>
+            <td><a href="{{ url_for('editar', id=livro.id) }}" class="btn btn-warning btn-sm">Editar</a><a href="{{ url_for('deletar', id=livro.id) }}" class="btn btn-danger btn-sm">Deletar</a></td>
           </tr>
           {% endfor %}
         </tbody>
@@ -65,7 +67,7 @@
         var dataTable = new DataTable(tabela, {
           searchable: true, // Habilita a pesquisa
           sortable: true, // Habilita a ordenação
-          perPage: 5, // Define 5 linhas por página
+          perPage: 15, // Define 15 linhas por página
           columns: [
             { select: 0, sort: "desc" }, // Ordena a primeira coluna em ordem ascendente
           ],

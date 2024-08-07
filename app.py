@@ -72,5 +72,38 @@ def criar():
     db.session.commit()
     return redirect(url_for("inicio"))
 
+@app.route("/deletar/<int:id>")
+def deletar(id):
+    # buscar livro pelo id
+    livro = Livro.query.get(id)
+    if livro:
+        #remover o livro do banco de dados
+        db.session.delete(livro)
+        db.session.commit()
+        #redirecionar ao inicio
+    return redirect(url_for("inicio"))
+
+@app.route("/editar/<int:id>")
+def editar(id):
+    #buscar o livro pelo id
+    livro = Livro.query.get(id)
+    if livro:
+        return render_template("editar.html",livro=livro)
+    return redirect(url_for("inicio"))
+
+@app.route("/atualizar/<int:id>", methods=["POST"])
+def atualizar(id):
+    # Buscar o livro pelo ID
+    livro = Livro.query.get(id)
+    if livro:
+        # Atualizar os dados do livro
+        livro.titulo = request.form["titulo"]
+        livro.autor = request.form["autor"]
+        livro.categoria = request.form["categoria"]
+        livro.ano = request.form["ano"]
+        livro.editora = request.form["editora"]
+        db.session.commit()
+    return redirect(url_for("inicio"))
+
 if __name__ == "__main__":
     app.run(debug=True)
