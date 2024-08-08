@@ -10,6 +10,7 @@
     <title>Cadastro</title>
   </head>
   <body>
+    {% include '_navbar.html' %}
     <div class="container mt-5">
       <h2>Cadastro de Usuário</h2>
       <form action="{{ url_for('cadastro') }}" method="POST">

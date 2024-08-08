@@ -5,8 +5,17 @@ with app.app_context():
     # Criação de todas as tabelas
     db.create_all()
 
-admin = User(username="JeanH", password="pasteldepizza", is_admin=True)
-db.session.add(admin)
-db.session.commit()
+    # Criação de um usuário de teste
 
-print(f"Usuário {username} criado com sucesso!")
+    admin = User(
+        username="JeanHD",
+        password="Pasteldepizza12",
+        first_name="Jean Henrique",
+        last_name="De Bastiani",
+        role="Administrador",
+        is_admin=True,
+    )
+    db.session.add(admin)
+    db.session.commit()
+
+    print(f"Usuário {admin.username} criado com sucesso!")

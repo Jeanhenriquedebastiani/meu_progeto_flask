@@ -7,7 +7,7 @@ from functools import wraps
 from flask import abort
 import pandas as pd
 import os
-
+import datetime 
 
 
 app = Flask(__name__)
@@ -59,6 +59,16 @@ class Livro(db.Model):
 
     def __repr__(self):
         return f"<Livro {self.titulo}>"
+
+class Reservation(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    book_id = db.Column(db.Integer, db.ForeignKey('livro.id'), nullable=False)
+    date_reserved = db.Column(db.DateTime, nullable=False, default=datetime.UTC)
+
+    def __init__(self, user_id, book_id):
+        self.user_id = user_id
+        self.book_id = book_id
 
 with app.app_context():
     db.create_all()
@@ -175,17 +185,25 @@ def logout():
     return redirect(url_for("login"))
 
 @app.route("/cadastro", methods=["GET", "POST"])
+@login_required
 @admin_required
 def cadastro():
     if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
+        first_name = request.form.get("first_name")
+        last_name = request.form.get("last_name")
+        role = request.form.get("role")
+        is_admin = request.form.get("is_admin") == 'on'  # Verifica se o checkbox foi marcado
+
+        # Verifique se o usuário já existe
         existing_user = User.query.filter_by(username=username).first()
         if existing_user:
             flash("Nome de usuário já existe. Tente um diferente.")
             return redirect(url_for("cadastro"))
 
-        new_user = User(username=username, password=password)
+        # Criação de um novo usuário
+        new_user = User(username=username, password=password, first_name=first_name, last_name=last_name, role=role, is_admin=is_admin)
         db.session.add(new_user)
         db.session.commit()
         flash("Cadastro realizado com sucesso! Você já pode fazer login.")
@@ -195,6 +213,34 @@ def cadastro():
 @app.errorhandler(403)
 def forbidden_error(error):
     return render_template("403.html"), 403
+
+@app.route("/reservar", methods=["GET"])
+@login_required
+def reservar():
+    livros = Livro.query.all()  # Pega todos os livros
+    return render_template("reservar.html", livros=livros)
+
+@app.route("/fazer_reserva/<int:book_id>")
+@login_required
+def fazer_reserva(book_id):
+    # Verifica se o livro já foi reservado pelo usuário
+    reserva_existente = Reservation.query.filter_by(user_id=current_user.id, book_id=book_id).first()
+    if reserva_existente:
+        flash("Você já reservou este livro.")
+        return redirect(url_for("reservar"))
+
+    # Criação de uma nova reserva
+    nova_reserva = Reservation(user_id=current_user.id, book_id=book_id)
+    db.session.add(nova_reserva)
+    db.session.commit()
+    flash("Reserva realizada com sucesso!")
+    return redirect(url_for("reservar"))
+
+@app.route("/minhas_reservas")
+@login_required
+def minhas_reservas():
+    reservas = Reservation.query.filter_by(user_id=current_user.id).all()
+    return render_template("minhas_reservas.html", reservas=reservas)
 
 asgi_app = WsgiToAsgi(app)
 
