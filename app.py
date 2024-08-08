@@ -1,13 +1,17 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash 
 from flask_sqlalchemy import SQLAlchemy
 from asgiref.wsgi import WsgiToAsgi
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager,UserMixin,login_user,login_required,logout_user,current_user
+from functools import wraps
+from flask import abort
 import pandas as pd
 import os
 
 
+
 app = Flask(__name__)
+
 app.config["SECRET_KEY"] = "Pasteldepizza8816"
 # Configuração do banco de dados SQLite
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///livros.db"
@@ -17,6 +21,24 @@ db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
+
+class User(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(150), nullable=False, unique=True)
+    password = db.Column(db.String(150), nullable=False)
+    first_name = db.Column(db.String(150), nullable=False)
+    last_name = db.Column(db.String(150), nullable=False)
+    role = db.Column(db.String(150), nullable=False)
+    is_admin = db.Column(db.Boolean, default=False)
+
+    def __init__(self, username, password, first_name, last_name, role, is_admin=False):
+        self.username = username
+        self.password = bcrypt.generate_password_hash(password).decode("utf-8")
+        self.first_name = first_name
+        self.last_name = last_name
+        self.role = role
+        self.is_admin = is_admin
+
 
 class Livro(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -55,20 +77,38 @@ with app.app_context():
             db.session.add(livro)
     db.session.commit()
 
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            return abort(403)
+        return f(*args, **kwargs)
+    return decorated_function
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
 @app.route("/inicio")
+@login_required
 def inicio():
     livros = Livro.query.all()
     return render_template("lista.html", lista_de_livros = livros)
 
 @app.route("/curriculo")
+@login_required
 def curriculo():
     return render_template("curriculo.html")
 
 @app.route("/novo")
+@login_required
 def novo():
     return render_template("novo.html", titulo = "Novo Livro")
 
+
 @app.route("/criar", methods=["POST"])
+@login_required
 def criar():
     titulo = request.form["titulo"]
     autor = request.form["autor"]
@@ -81,6 +121,7 @@ def criar():
     return redirect(url_for("inicio"))
 
 @app.route("/deletar/<int:id>")
+@login_required
 def deletar(id):
     # buscar livro pelo id
     livro = Livro.query.get(id)
@@ -92,6 +133,7 @@ def deletar(id):
     return redirect(url_for("inicio"))
 
 @app.route("/editar/<int:id>")
+@login_required
 def editar(id):
     #buscar o livro pelo id
     livro = Livro.query.get(id)
@@ -100,6 +142,7 @@ def editar(id):
     return redirect(url_for("inicio"))
 
 @app.route("/atualizar/<int:id>", methods=["POST"])
+@login_required
 def atualizar(id):
     # Buscar o livro pelo ID
     livro = Livro.query.get(id)
@@ -113,7 +156,45 @@ def atualizar(id):
         db.session.commit()
     return redirect(url_for("inicio"))
 
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+        user = User.query.filter_by(username = username).first()
+        if user and bcrypt.check_password_hash(user.password, password):
+            login_user(user)
+            return redirect(url_for("inicio"))
+        else:
+            flash("Login ou senha incorretos. Tente novamente.")
+    return render_template ("login.html")
 
+@app.route("/logout")
+def logout():
+    logout_user()
+    return redirect(url_for("login"))
+
+@app.route("/cadastro", methods=["GET", "POST"])
+@admin_required
+def cadastro():
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+        existing_user = User.query.filter_by(username=username).first()
+        if existing_user:
+            flash("Nome de usuário já existe. Tente um diferente.")
+            return redirect(url_for("cadastro"))
+
+        new_user = User(username=username, password=password)
+        db.session.add(new_user)
+        db.session.commit()
+        flash("Cadastro realizado com sucesso! Você já pode fazer login.")
+        return redirect(url_for("login"))
+    return render_template("cadastro.html")
+
+@app.errorhandler(403)
+def forbidden_error(error):
+    return render_template("403.html"), 403
 
 asgi_app = WsgiToAsgi(app)
 

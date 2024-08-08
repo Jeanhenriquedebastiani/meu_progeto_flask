@@ -12,6 +12,7 @@
   <body>
     <div class="container mt-5">
       <h1>Editar Livro</h1>
+      <a href="{{ url_for('logout') }}">Logout</a>
       <form action="{{ url_for('atualizar', id=livro.id) }}" method="post">
         <div class="form-group">
           <label for="titulo">Título</label>
