@@ -3,3 +3,9 @@ flask==3.0.3
 asgiref
 flask_sqlalchemy
 uvicorn
+flask_bcrypt
+asgiref.wsgi
+flask_login
+functools
+datetime
+os
