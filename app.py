@@ -64,7 +64,7 @@ class Reservation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     book_id = db.Column(db.Integer, db.ForeignKey('livro.id'), nullable=False)
-    date_reserved = db.Column(db.DateTime, nullable=False, default=datetime.UTC)
+    date_reserved = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
 
     def __init__(self, user_id, book_id):
         self.user_id = user_id
@@ -174,8 +174,10 @@ def login():
         user = User.query.filter_by(username = username).first()
         if user and bcrypt.check_password_hash(user.password, password):
             login_user(user)
+            print("caiu aqui")
             return redirect(url_for("inicio"))
         else:
+            print("caiu aqui else")
             flash("Login ou senha incorretos. Tente novamente.")
     return render_template ("login.html")
 
