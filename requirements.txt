@@ -5,6 +5,3 @@ flask_sqlalchemy
 uvicorn
 flask_bcrypt
 flask_login
-functools
-datetime
-os
